@@ -1,177 +1,225 @@
-/*
- * GLUT Shapes Demo
- *
- * Written by Nigel Stewart November 2003
- *
- * This program is test harness for the sphere, cone
- * and torus shapes in GLUT.
- *
- * Spinning wireframe and smooth shaded shapes are
- * displayed until the ESC or q key is pressed.  The
- * number of geometry stacks and slices can be adjusted
- * using the + and - keys.
- */
-
 #ifdef __APPLE__
 #include <GLUT/glut.h>
 #else
 #include <GL/glut.h>
 #endif
+#include<bits/stdc++.h>
+using namespace std;
+#define pb      push_back
+#define ll      long long
+#define pi      2*acos(0)
+#define fr(i,n) for(i=0;i<n;i++)
+#define fr1(i,n)for(i=1;i<=n;i++)
 
-#include <stdlib.h>
-
-static int slices = 16;
-static int stacks = 16;
-
-/* GLUT callback Handlers */
-
-static void resize(int width, int height)
+struct P
 {
-    const float ar = (float) width / (float) height;
-
-    glViewport(0, 0, width, height);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glFrustum(-ar, ar, -1.0, 1.0, 2.0, 100.0);
-
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity() ;
-}
-
-static void display(void)
-{
-    const double t = glutGet(GLUT_ELAPSED_TIME) / 1000.0;
-    const double a = t*90.0;
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glColor3d(1,0,0);
-
-    glPushMatrix();
-        glTranslated(-2.4,1.2,-6);
-        glRotated(60,1,0,0);
-        glRotated(a,0,0,1);
-        glutSolidSphere(1,slices,stacks);
-    glPopMatrix();
-
-    glPushMatrix();
-        glTranslated(0,1.2,-6);
-        glRotated(60,1,0,0);
-        glRotated(a,0,0,1);
-        glutSolidCone(1,1,slices,stacks);
-    glPopMatrix();
-
-    glPushMatrix();
-        glTranslated(2.4,1.2,-6);
-        glRotated(60,1,0,0);
-        glRotated(a,0,0,1);
-        glutSolidTorus(0.2,0.8,slices,stacks);
-    glPopMatrix();
-
-    glPushMatrix();
-        glTranslated(-2.4,-1.2,-6);
-        glRotated(60,1,0,0);
-        glRotated(a,0,0,1);
-        glutWireSphere(1,slices,stacks);
-    glPopMatrix();
-
-    glPushMatrix();
-        glTranslated(0,-1.2,-6);
-        glRotated(60,1,0,0);
-        glRotated(a,0,0,1);
-        glutWireCone(1,1,slices,stacks);
-    glPopMatrix();
-
-    glPushMatrix();
-        glTranslated(2.4,-1.2,-6);
-        glRotated(60,1,0,0);
-        glRotated(a,0,0,1);
-        glutWireTorus(0.2,0.8,slices,stacks);
-    glPopMatrix();
-
-    glutSwapBuffers();
-}
-
-
-static void key(unsigned char key, int x, int y)
-{
-    switch (key)
+    double x,y;
+    P(double x=0,double y=0)
     {
-        case 27 :
-        case 'q':
-            exit(0);
-            break;
-
-        case '+':
-            slices++;
-            stacks++;
-            break;
-
-        case '-':
-            if (slices>3 && stacks>3)
-            {
-                slices--;
-                stacks--;
-            }
-            break;
+        this->x=x,this->y=y;
     }
+};
+//2D Start
+P MV(P aa,P bb){ return P(bb.x-aa.x,bb.y-aa.y);}//Make Vector
+P ROT(P aa,double rad){return P(aa.x*cos(rad)-aa.y*sin(rad),aa.x*sin(rad)+aa.y*cos(rad));} //rotation with an angle(on radian)
+//2D End
+vector<float>vertices;
+// ----------------------------------------------------------
+// Global Variables
+// ----------------------------------------------------------
+double rotate_y=0,rotate_x=0,rotate_z=0;
+double pos_x=0,pos_y=0,prev_x=0,prev_y=0;
+int windowWidth=600,windowHeight=600;
+int nowRotate=0;
+int tot=0,refreshMills=16,angle=180;
+vector<P>v;
 
-    glutPostRedisplay();
+// ----------------------------------------------------------
+// display() Callback function
+// ----------------------------------------------------------
+void display()
+{
+    int i;
+    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);    //clear screen
+    glLoadIdentity();   // Reset transformations
+    glTranslatef( pos_x, pos_y, 0.0 );   // Other Transformations
+
+    // Rotate when user changes rotate_x , rotate_y and rotate_z
+    glRotatef( rotate_x, 1.0, 0.0, 0.0 );
+    glRotatef( rotate_y, 0.0, 1.0, 0.0 );
+    glRotatef( rotate_z, 0.0, 0.0, 1.0 );
+
+    glBegin(GL_POLYGON);    //make polygon
+    glColor3f( 1.0, 0.5, 0.2 );
+    fr(i,v.size())glVertex3f(v[i].x,v[i].y,-.7);
+    glEnd();
+    glFlush();
+    glutSwapBuffers();
+
+}
+void idle(){glutPostRedisplay();}   // Post a re-paint request to activate display()
+
+
+// ----------------------------------------------------------
+// specialKeys() Callback Function
+// ----------------------------------------------------------
+void keyboard(unsigned char key, int x, int y)
+{
+    if (key == 'a') pos_x -= .2,tot=0;
+    else if (key == 'd') pos_x += .2,tot=0;
+    else if (key == 'w') pos_y += .2,tot=0;
+    else if (key == 's') pos_y -= .2,tot=0;
+
+    if(key>='0'&&key<='9') tot=(tot*10)+(key-'0');
+    if(key=='g') angle=tot,tot=0;
+    if(key=='x') nowRotate=0,tot=0;
+    if(key=='y') nowRotate=1,tot=0;
+    if(key=='z') nowRotate=2,tot=0;
+    idle();
+}
+int cx=0,cy=0,cz=0,cnt=0;
+void specialKeys( int key, int x, int y )
+{
+
+    //  Right arrow - increase rotation by 5 degree
+    if (key == GLUT_KEY_RIGHT)cy=-1;
+    //  Left arrow - decrease rotation by 5 degree
+    else if (key == GLUT_KEY_LEFT)cy=1;
+    else if (key == GLUT_KEY_UP) cx=1;
+    else if (key == GLUT_KEY_DOWN) cx=-1;
+    else if( key == GLUT_KEY_PAGE_UP) cz=1;
+    else if(key== GLUT_KEY_PAGE_DOWN)cz=-1;
+
+   // glutPostRedisplay();
+}
+void cntCheck(int &wk)
+{
+    if(cnt==angle)
+        {
+            cnt=0;
+            wk=0;
+        }
+}
+void updateRotate()
+{
+    if(cx==1)
+    {
+        rotate_x++,cnt++;
+        cntCheck(cx);
+    }
+    if(cx==-1)
+    {
+        rotate_x--,cnt++;
+         cntCheck(cx);
+    }
+    if(cy==1)
+    {
+        rotate_y++,cnt++;
+        cntCheck(cy);
+    }
+    if(cy==-1)
+    {
+        rotate_y--,cnt++;
+         cntCheck(cy);
+    }
+    if(cz==1)
+    {
+        rotate_z++,cnt++;
+        cntCheck(cz);
+    }
+    if(cz==-1)
+    {
+        rotate_z--,cnt++;
+        cntCheck(cz);
+    }
+}
+void timer( int value )
+{
+    updateRotate();
+    glutTimerFunc( refreshMills, timer, 0 );
+    idle();
 }
 
-static void idle(void)
+// ----------------------------------------------------------
+// mouse Callback Function
+// ----------------------------------------------------------
+void onMouseButton(int button, int state, int x, int y)
 {
-    glutPostRedisplay();
+    int b;
+    switch(button) {
+    case GLUT_LEFT_BUTTON:
+	{
+		if(nowRotate==0)cx=1;
+		else if(nowRotate==1)cy=1;
+		else cz=1;
+	}
+	break;
+    case GLUT_MIDDLE_BUTTON:
+	{
+		float mx=x;
+    		float my=y;
+    		pos_x=(mx/320-1.0);
+    		pos_y=-(my/240 -1.0);
+
+		prev_x=pos_x;
+		prev_y=pos_y;
+
+	} break;
+    case GLUT_RIGHT_BUTTON:
+	{
+		if(nowRotate==0)cx=-1;
+		else if(nowRotate==1)cy=-1;
+		else cz=-1;
+	}
+	break;
+    }
+    //idle();
 }
 
-const GLfloat light_ambient[]  = { 0.0f, 0.0f, 0.0f, 1.0f };
-const GLfloat light_diffuse[]  = { 1.0f, 1.0f, 1.0f, 1.0f };
-const GLfloat light_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-const GLfloat light_position[] = { 2.0f, 5.0f, 5.0f, 0.0f };
-
-const GLfloat mat_ambient[]    = { 0.7f, 0.7f, 0.7f, 1.0f };
-const GLfloat mat_diffuse[]    = { 0.8f, 0.8f, 0.8f, 1.0f };
-const GLfloat mat_specular[]   = { 1.0f, 1.0f, 1.0f, 1.0f };
-const GLfloat high_shininess[] = { 100.0f };
-
-/* Program entry point */
-
-int main(int argc, char *argv[])
+void get()
 {
-    glutInit(&argc, argv);
-    glutInitWindowSize(640,480);
-    glutInitWindowPosition(10,10);
-    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
+    int n,i;
+    cout<<"Enter the order of polygon: ";
+    while(cin>>n&&n<3)cout<<"Order must be greater than or equal to 3!!!\nEnter the order of polygon: ";
+    P a,b,c,ab;
+    b.x=0.5;
+    ab=MV(a,b);
+    v.pb(P(b.x,0));
+    float angle=(2*pi)/n;
+    fr1(i,n-1)
+    {
+        c=ROT(ab,angle);
+        v.pb(c);
+        ab=c;
+    }
+}
 
-    glutCreateWindow("GLUT Shapes");
+void initGL()
+{
+    glClearColor(.2f,.3f,.3f,1.0f); //  Clear screen and Z-buffer
+}
+int main(int argc, char* argv[])
+{
+    get();
+    glutInit(&argc,argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 
-    glutReshapeFunc(resize);
-    glutDisplayFunc(display);
-    glutKeyboardFunc(key);
-    glutIdleFunc(idle);
-
-    glClearColor(1,1,1,1);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
+    glutInitWindowSize(windowWidth, windowHeight);
+    glutInitWindowPosition(300, 50);
+    glutCreateWindow("Play With Polygon");
 
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
+    glutDisplayFunc(display);
+    //glReshapeFunc(reshape);
+    glutIdleFunc(idle); // Register callback handler if no other event
+    glutTimerFunc( 0, timer, 0 );
+    glutSpecialFunc(specialKeys);
+    glutKeyboardFunc(keyboard);
+    glutMouseFunc(onMouseButton);
 
-    glEnable(GL_LIGHT0);
-    glEnable(GL_NORMALIZE);
-    glEnable(GL_COLOR_MATERIAL);
-    glEnable(GL_LIGHTING);
-
-    glLightfv(GL_LIGHT0, GL_AMBIENT,  light_ambient);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE,  light_diffuse);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
-    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-
-    glMaterialfv(GL_FRONT, GL_AMBIENT,   mat_ambient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE,   mat_diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR,  mat_specular);
-    glMaterialfv(GL_FRONT, GL_SHININESS, high_shininess);
-
+    initGL();
     glutMainLoop();
+    return 0;
 
-    return EXIT_SUCCESS;
 }
+
